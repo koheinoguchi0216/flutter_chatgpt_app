@@ -74,6 +74,11 @@ class _MyHomePageState extends State<MyHomePage> {
     Message(DateTime(2023, 7, 31, 10, 0, 7),
         message: '了解、また後で！', fromChatGpt: true),
   ];
+  
+  static const Color _colorBackground = Color.fromARGB(0xFF, 0x90, 0xac, 0xd7);
+  static const Color _colorMyMessage = Color.fromARGB(0xFF, 0x8a, 0xe1, 0x7e);
+  static const Color _colorOthersMessage = Color.fromARGB(0xFF, 0xff, 0xff, 0xff);
+  static const Color _colorTime = Color.fromARGB(0xFF, 0x72, 0x88, 0xa8);
 
   @override
   Widget build(BuildContext context) {
