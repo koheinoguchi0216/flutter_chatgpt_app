@@ -27,10 +27,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
+        scaffoldBackgroundColor: _MyHomePageState._colorBackground,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Talk with GPT-3'),
     );
   }
 }
@@ -87,7 +87,6 @@ class _MyHomePageState extends State<MyHomePage> {
     final deviceWidth = MediaQuery.of(context).size.width;
     return Scaffold(
         appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           title: Text(widget.title),
         ),
         body: Center(
@@ -105,6 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       mainAxisAlignment: message.fromChatGpt
                           ? MainAxisAlignment.start
                           : MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (message.fromChatGpt)
                           SizedBox(
@@ -115,11 +115,35 @@ class _MyHomePageState extends State<MyHomePage> {
                                     padding: const EdgeInsets.all(4.0),
                                     child: Image.asset('images/openai.png'),
                                   ))),
-                        ConstrainedBox(
-                            constraints:
-                                BoxConstraints(maxWidth: deviceWidth * 0.7),
-                            child: Text(_messages[index].message)),
-                        const Text('午前12:00')
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            if (!message.fromChatGpt)
+                              Text(_formatDateTime(message.sendTime)),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Container(
+                                constraints:
+                                    BoxConstraints(maxWidth: deviceWidth * 0.7),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  color: message.fromChatGpt
+                                      ? _colorOthersMessage
+                                      : _colorMyMessage,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    message.message,
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (message.fromChatGpt)
+                              Text(_formatDateTime(message.sendTime)),
+                          ],
+                        ),
                       ],
                     ),
                   );
@@ -146,6 +170,10 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
         ));
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
   Future<String> _sendMessage(String message) async {
