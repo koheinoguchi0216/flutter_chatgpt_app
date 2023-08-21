@@ -98,22 +98,29 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: ListView.builder(
                 itemCount: _messages.length,
                 itemBuilder: (context, index) {
-                  return Row(
-                    children: [
-                      SizedBox(
-                          width: deviceWidth * 0.1,
-                          child: CircleAvatar(
-                            backgroundColor: _colorAvatar,
-                              child: Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: Image.asset('images/openai.png'),
-                              ))),
-                      ConstrainedBox(
-                          constraints:
-                              BoxConstraints(maxWidth: deviceWidth * 0.7),
-                          child: Text(_messages[index].message)),
-                      const Text('午前12:00')
-                    ],
+                  final message = _messages[index];
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisAlignment: message.fromChatGpt
+                          ? MainAxisAlignment.start
+                          : MainAxisAlignment.end,
+                      children: [
+                        SizedBox(
+                            width: deviceWidth * 0.1,
+                            child: CircleAvatar(
+                                backgroundColor: _colorAvatar,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: Image.asset('images/openai.png'),
+                                ))),
+                        ConstrainedBox(
+                            constraints:
+                                BoxConstraints(maxWidth: deviceWidth * 0.7),
+                            child: Text(_messages[index].message)),
+                        const Text('午前12:00')
+                      ],
+                    ),
                   );
                 },
               )),
