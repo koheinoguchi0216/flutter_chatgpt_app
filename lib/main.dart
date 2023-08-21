@@ -106,14 +106,15 @@ class _MyHomePageState extends State<MyHomePage> {
                           ? MainAxisAlignment.start
                           : MainAxisAlignment.end,
                       children: [
-                        SizedBox(
-                            width: deviceWidth * 0.1,
-                            child: CircleAvatar(
-                                backgroundColor: _colorAvatar,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: Image.asset('images/openai.png'),
-                                ))),
+                        if (message.fromChatGpt)
+                          SizedBox(
+                              width: deviceWidth * 0.1,
+                              child: CircleAvatar(
+                                  backgroundColor: _colorAvatar,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(4.0),
+                                    child: Image.asset('images/openai.png'),
+                                  ))),
                         ConstrainedBox(
                             constraints:
                                 BoxConstraints(maxWidth: deviceWidth * 0.7),
