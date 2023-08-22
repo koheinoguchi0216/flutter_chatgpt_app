@@ -17,6 +17,9 @@ class Message {
   final String message;
   final bool fromChatGpt;
   final DateTime sendTime;
+
+  Message.waitResponse(DateTime now)
+      : this(message: '', DateTime.now(), fromChatGpt: true);
 }
 
 class MyApp extends StatelessWidget {
@@ -52,28 +55,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final _textEditingController = TextEditingController();
 
-  var _answer = '';
-
-  final _messages = <Message>[
-    Message(DateTime(2023, 7, 31, 10, 0, 0),
-        message: 'こんにちは！', fromChatGpt: false),
-    Message(DateTime(2023, 7, 31, 10, 0, 1),
-        message: 'おはよう！今日はどんな予定があるの？', fromChatGpt: true),
-    Message(DateTime(2023, 7, 31, 10, 0, 2),
-        message: '今日は新しいプロジェクトの会議があるんだ。それから、夕方にはジムに行く予定だよ。君は？',
-        fromChatGpt: false),
-    Message(DateTime(2023, 7, 31, 10, 0, 3),
-        message: 'お、新しいプロジェクト、楽しそう！僕は午後からフリーなので、友人とカフェに行く予定だよ。',
-        fromChatGpt: true),
-    Message(DateTime(2023, 7, 31, 10, 0, 4),
-        message: 'いいね、楽しんできて！', fromChatGpt: false),
-    Message(DateTime(2023, 7, 31, 10, 0, 5),
-        message: 'ありがとう！会議、頑張ってね！', fromChatGpt: true),
-    Message(DateTime(2023, 7, 31, 10, 0, 6),
-        message: 'ありがとう！また後でチャットしよう！', fromChatGpt: false),
-    Message(DateTime(2023, 7, 31, 10, 0, 7),
-        message: '了解、また後で！', fromChatGpt: true),
-  ];
+  bool _isLoading = false;
+  final _messages = <Message>[];
 
   static const Color _colorBackground = Color.fromARGB(0xFF, 0x90, 0xac, 0xd7);
   static const Color _colorMyMessage = Color.fromARGB(0xFF, 0x8a, 0xe1, 0x7e);
@@ -98,6 +81,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 itemCount: _messages.length,
                 itemBuilder: (context, index) {
                   final message = _messages[index];
+                  final showLoadingIcon =
+                      _isLoading && index == _messages.length - 1;
                   return Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Row(
@@ -133,10 +118,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(8.0),
-                                  child: Text(
-                                    message.message,
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
+                                  child: showLoadingIcon
+                                      ? const CircularProgressIndicator()
+                                      : Text(
+                                          message.message,
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
                                 ),
                               ),
                             ),
@@ -156,17 +143,15 @@ class _MyHomePageState extends State<MyHomePage> {
                     controller: _textEditingController,
                   )),
                   IconButton(
-                      onPressed: () async {
-                        final answer =
-                            await _sendMessage(_textEditingController.text);
-                        setState(() {
-                          _answer = answer;
-                        });
+                      onPressed: () {
+                        _isLoading
+                            ? null
+                            : _onTapSend(_textEditingController.text);
                       },
-                      icon: const Icon(Icons.send)),
+                      icon: Icon(Icons.send,
+                          color: _isLoading ? Colors.grey : Colors.black)),
                 ],
               ),
-              Text(_answer),
             ],
           ),
         ));
@@ -174,6 +159,24 @@ class _MyHomePageState extends State<MyHomePage> {
 
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _onTapSend(String userMessage) {
+    setState(() {
+      _isLoading = true;
+      _messages.addAll([
+        Message(message: userMessage, DateTime.now(), fromChatGpt: false),
+        Message.waitResponse(DateTime.now()),
+      ]);
+    });
+
+    _sendMessage(userMessage).then((chatGptMessage) {
+      setState(() {
+        _messages.last =
+            Message(message: chatGptMessage, DateTime.now(), fromChatGpt: true);
+        _isLoading = false;
+      });
+    });
   }
 
   Future<String> _sendMessage(String message) async {
