@@ -9,6 +9,7 @@ void main() {
 
 class Message {
   const Message(
+    this.imageUrl,
     this.sendTime, {
     required this.message,
     required this.fromChatGpt,
@@ -17,9 +18,19 @@ class Message {
   final String message;
   final bool fromChatGpt;
   final DateTime sendTime;
+  final String imageUrl;
+
+  Message.fromUser(String message, DateTime now)
+      : this(message: '', '', DateTime.now(), fromChatGpt: false);
+
+  Message.fromChatGpt(String message, DateTime now)
+      : this(message: '', '', DateTime.now(), fromChatGpt: true);
+
+  Message.image(String imageUrl, DateTime now)
+      : this(message: '', imageUrl, DateTime.now(), fromChatGpt: true);
 
   Message.waitResponse(DateTime now)
-      : this(message: '', DateTime.now(), fromChatGpt: true);
+      : this(message: '', '', DateTime.now(), fromChatGpt: true);
 }
 
 class MyApp extends StatelessWidget {
@@ -153,6 +164,14 @@ class _MyHomePageState extends State<MyHomePage> {
                       },
                       icon: Icon(Icons.send,
                           color: _isLoading ? Colors.grey : Colors.black)),
+                  IconButton(
+                      onPressed: () {
+                        _isLoading
+                            ? null
+                            : _onTapImage(_textEditingController.text);
+                      },
+                      icon: Icon(Icons.image,
+                          color: _isLoading ? Colors.grey : Colors.black)),
                 ],
               ),
             ],
@@ -168,7 +187,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _isLoading = true;
       _messages.addAll([
-        Message(message: userMessage, DateTime.now(), fromChatGpt: false),
+        Message.fromUser(userMessage, DateTime.now()),
         Message.waitResponse(DateTime.now()),
       ]);
       _scrollDown();
@@ -177,7 +196,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _sendMessage(userMessage).then((chatGptMessage) {
       setState(() {
         _messages.last =
-            Message(message: chatGptMessage, DateTime.now(), fromChatGpt: true);
+            Message.fromChatGpt(chatGptMessage.trim(), DateTime.now());
         _isLoading = false;
       });
       _scrollDown();
@@ -203,5 +222,16 @@ class _MyHomePageState extends State<MyHomePage> {
         curve: Curves.fastOutSlowIn,
       );
     });
+  }
+
+  void _onTapImage(String message) {
+    _generateImages(message, 2);
+  }
+
+  void _generateImages(String message, int numOfImages) async {
+    final request =
+        GenerateImage(message, numOfImages, size: ImageSize.size256);
+    final response = await openAI.generateImage(request);
+    final imageList = response?.data ?? [];
   }
 }
