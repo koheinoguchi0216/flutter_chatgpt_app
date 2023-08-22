@@ -53,7 +53,9 @@ class _MyHomePageState extends State<MyHomePage> {
     enableLog: true,
   );
 
-  final _textEditingController = TextEditingController();
+  final _textEditingController =
+      TextEditingController(text: 'What is Flutter?');
+  final _scrollController = ScrollController();
 
   bool _isLoading = false;
   final _messages = <Message>[];
@@ -78,6 +80,7 @@ class _MyHomePageState extends State<MyHomePage> {
             children: <Widget>[
               Expanded(
                   child: ListView.builder(
+                controller: _scrollController,
                 itemCount: _messages.length,
                 itemBuilder: (context, index) {
                   final message = _messages[index];
@@ -168,6 +171,7 @@ class _MyHomePageState extends State<MyHomePage> {
         Message(message: userMessage, DateTime.now(), fromChatGpt: false),
         Message.waitResponse(DateTime.now()),
       ]);
+      _scrollDown();
     });
 
     _sendMessage(userMessage).then((chatGptMessage) {
@@ -176,6 +180,7 @@ class _MyHomePageState extends State<MyHomePage> {
             Message(message: chatGptMessage, DateTime.now(), fromChatGpt: true);
         _isLoading = false;
       });
+      _scrollDown();
     });
   }
 
@@ -188,5 +193,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final response = await openAI.onCompletion(request: request);
     return response!.choices.first.text;
+  }
+
+  void _scrollDown() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.fastOutSlowIn,
+      );
+    });
   }
 }
