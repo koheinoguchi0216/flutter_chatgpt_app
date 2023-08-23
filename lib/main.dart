@@ -9,6 +9,7 @@ void main() {
 
 class Message {
   const Message(
+    this.imageUrl,
     this.sendTime, {
     required this.message,
     required this.fromChatGpt,
@@ -17,9 +18,19 @@ class Message {
   final String message;
   final bool fromChatGpt;
   final DateTime sendTime;
+  final String imageUrl;
+
+  Message.fromUser(String message, DateTime now)
+      : this(message: '', '', DateTime.now(), fromChatGpt: false);
+
+  Message.fromChatGpt(String message, DateTime now)
+      : this(message: '', '', DateTime.now(), fromChatGpt: true);
+
+  Message.image(String imageUrl, DateTime now)
+      : this(message: '', imageUrl, DateTime.now(), fromChatGpt: true);
 
   Message.waitResponse(DateTime now)
-      : this(message: '', DateTime.now(), fromChatGpt: true);
+      : this(message: '', '', DateTime.now(), fromChatGpt: true);
 }
 
 class MyApp extends StatelessWidget {
@@ -123,10 +134,32 @@ class _MyHomePageState extends State<MyHomePage> {
                                   padding: const EdgeInsets.all(8.0),
                                   child: showLoadingIcon
                                       ? const CircularProgressIndicator()
-                                      : Text(
-                                          message.message,
-                                          style: const TextStyle(fontSize: 16),
-                                        ),
+                                      : message.imageUrl.isNotEmpty
+                                          ? Image.network(message.imageUrl,
+                                              frameBuilder: (BuildContext
+                                                      context,
+                                                  Widget child,
+                                                  int? frame,
+                                                  bool wasSynchronouslyLoaded) {
+                                              if (!wasSynchronouslyLoaded) {
+                                                _scrollDown();
+                                              }
+                                              return child;
+                                            }, loadingBuilder:
+                                                  (BuildContext context,
+                                                      Widget child,
+                                                      ImageChunkEvent?
+                                                          loadingProgress) {
+                                              if (loadingProgress != null) {
+                                                return const CircularProgressIndicator();
+                                              }
+                                              return const CircularProgressIndicator();
+                                            })
+                                          : Text(
+                                              message.message,
+                                              style:
+                                                  const TextStyle(fontSize: 16),
+                                            ),
                                 ),
                               ),
                             ),
@@ -153,6 +186,14 @@ class _MyHomePageState extends State<MyHomePage> {
                       },
                       icon: Icon(Icons.send,
                           color: _isLoading ? Colors.grey : Colors.black)),
+                  IconButton(
+                      onPressed: () {
+                        _isLoading
+                            ? null
+                            : _onTapImage(_textEditingController.text);
+                      },
+                      icon: Icon(Icons.image,
+                          color: _isLoading ? Colors.grey : Colors.black)),
                 ],
               ),
             ],
@@ -168,7 +209,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _isLoading = true;
       _messages.addAll([
-        Message(message: userMessage, DateTime.now(), fromChatGpt: false),
+        Message.fromUser(userMessage, DateTime.now()),
         Message.waitResponse(DateTime.now()),
       ]);
       _scrollDown();
@@ -177,7 +218,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _sendMessage(userMessage).then((chatGptMessage) {
       setState(() {
         _messages.last =
-            Message(message: chatGptMessage, DateTime.now(), fromChatGpt: true);
+            Message.fromChatGpt(chatGptMessage.trim(), DateTime.now());
         _isLoading = false;
       });
       _scrollDown();
@@ -203,5 +244,36 @@ class _MyHomePageState extends State<MyHomePage> {
         curve: Curves.fastOutSlowIn,
       );
     });
+  }
+
+  void _onTapImage(String message) {
+    setState(() {
+      _isLoading = true;
+      _messages.addAll([
+        Message.fromUser(message, DateTime.now()),
+        Message.waitResponse(DateTime.now()),
+      ]);
+      _scrollDown();
+    });
+
+    _generateImages(message, 2).then((urls) {
+      setState(() {
+        _messages.removeLast();
+        _messages.addAll(urls.map((url) => Message.image(url, DateTime.now())));
+        _isLoading = false;
+      });
+    });
+  }
+
+  Future<Iterable<String>> _generateImages(
+      String message, int numOfImages) async {
+    final request =
+        GenerateImage(message, numOfImages, size: ImageSize.size256);
+    final response = await openAI.generateImage(request);
+    final imageList = response?.data ?? [];
+
+    return imageList
+        .where((e) => e != null && e.url != null)
+        .map((e) => e!.url!);
   }
 }
