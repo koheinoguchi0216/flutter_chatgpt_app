@@ -134,10 +134,32 @@ class _MyHomePageState extends State<MyHomePage> {
                                   padding: const EdgeInsets.all(8.0),
                                   child: showLoadingIcon
                                       ? const CircularProgressIndicator()
-                                      : Text(
-                                          message.message,
-                                          style: const TextStyle(fontSize: 16),
-                                        ),
+                                      : message.imageUrl.isNotEmpty
+                                          ? Image.network(message.imageUrl,
+                                              frameBuilder: (BuildContext
+                                                      context,
+                                                  Widget child,
+                                                  int? frame,
+                                                  bool wasSynchronouslyLoaded) {
+                                              if (!wasSynchronouslyLoaded) {
+                                                _scrollDown();
+                                              }
+                                              return child;
+                                            }, loadingBuilder:
+                                                  (BuildContext context,
+                                                      Widget child,
+                                                      ImageChunkEvent?
+                                                          loadingProgress) {
+                                              if (loadingProgress != null) {
+                                                return const CircularProgressIndicator();
+                                              }
+                                              return const CircularProgressIndicator();
+                                            })
+                                          : Text(
+                                              message.message,
+                                              style:
+                                                  const TextStyle(fontSize: 16),
+                                            ),
                                 ),
                               ),
                             ),
@@ -225,13 +247,33 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _onTapImage(String message) {
-    _generateImages(message, 2);
+    setState(() {
+      _isLoading = true;
+      _messages.addAll([
+        Message.fromUser(message, DateTime.now()),
+        Message.waitResponse(DateTime.now()),
+      ]);
+      _scrollDown();
+    });
+
+    _generateImages(message, 2).then((urls) {
+      setState(() {
+        _messages.removeLast();
+        _messages.addAll(urls.map((url) => Message.image(url, DateTime.now())));
+        _isLoading = false;
+      });
+    });
   }
 
-  void _generateImages(String message, int numOfImages) async {
+  Future<Iterable<String>> _generateImages(
+      String message, int numOfImages) async {
     final request =
         GenerateImage(message, numOfImages, size: ImageSize.size256);
     final response = await openAI.generateImage(request);
     final imageList = response?.data ?? [];
+
+    return imageList
+        .where((e) => e != null && e.url != null)
+        .map((e) => e!.url!);
   }
 }
